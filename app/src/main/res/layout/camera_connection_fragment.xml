@@ -32,7 +32,6 @@
         android:layout_alignParentBottom="true"
         android:layout_marginLeft="65dp"
         android:layout_marginRight="65dp"
-
         android:layout_alignParentTop="false" />
 
     <demo.tensorflow.org.customvision_sample.OverlayView

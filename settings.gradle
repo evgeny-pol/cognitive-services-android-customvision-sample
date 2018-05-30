@@ -1,1 +1,4 @@
+include ':react-native-code-push'
+project(':react-native-code-push').projectDir = new File(rootProject.projectDir, '../react-native-code-push/android/app')
+
 include ':app'

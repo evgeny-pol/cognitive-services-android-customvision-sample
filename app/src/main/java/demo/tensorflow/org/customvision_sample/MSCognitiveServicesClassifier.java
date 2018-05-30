@@ -24,12 +24,12 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+
 import junit.framework.Assert;
 
-import org.tensorflow.Operation;
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
+
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,7 +37,7 @@ import java.util.Vector;
 
 public class MSCognitiveServicesClassifier {
 
-    private static final String MODEL_FILE = "file:///android_asset/model.pb";
+    public static String MODEL_FILE = "file:///android_asset/model.pb";
 
     private TensorFlowInferenceInterface inferenceInterface;
     private Vector<String> labels = new Vector<String>();

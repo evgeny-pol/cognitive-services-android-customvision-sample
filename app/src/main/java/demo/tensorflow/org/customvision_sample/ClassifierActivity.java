@@ -20,7 +20,6 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
 import android.graphics.Typeface;
-
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.SystemClock;
 import android.util.Size;
@@ -93,7 +92,7 @@ public class ClassifierActivity extends CameraActivity implements OnImageAvailab
     protected void processImageRGBbytes(int[] rgbBytes) {
         rgbFrameBitmap.setPixels(rgbBytes, 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
-        runInBackground(
+        new Thread(
                 new Runnable() {
                     @Override
                     public void run() {
@@ -118,7 +117,7 @@ public class ClassifierActivity extends CameraActivity implements OnImageAvailab
                             postInferenceCallback.run();
                         }
                     }
-                });
+                }).start();
 
     }
 
