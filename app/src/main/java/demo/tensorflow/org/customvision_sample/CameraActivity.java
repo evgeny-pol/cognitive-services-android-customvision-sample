@@ -171,6 +171,7 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
                 }
             }
         } catch (Exception e) {
+            LOGGER.e("MODELS", e.getMessage());
         }
         boolean noModel = MSCognitiveServicesClassifier.checkModel(getAssets());
         boolean noLabel = MSCognitiveServicesClassifier.checkLabel(getAssets());
@@ -178,13 +179,13 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
         TextView warningLabel = findViewById(R.id.no_model_label);
         warningLabel.setVisibility(noModelOrLabel ? View.VISIBLE : View.GONE);
         if (noLabel) {
-            warningLabel.setText("No label file found");
+            warningLabel.setText(R.string.no_label_file);
         }
         if (noModel) {
-            warningLabel.setText("No model file found");
+            warningLabel.setText(R.string.no_model_file);
         }
         if (noModel && noLabel) {
-            warningLabel.setText("No model and label files found");
+            warningLabel.setText(R.string.no_model_label_file);
         }
 
     }

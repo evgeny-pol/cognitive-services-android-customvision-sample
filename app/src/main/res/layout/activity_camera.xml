@@ -50,18 +50,17 @@
         android:id="@+id/add_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|right"
+        android:layout_gravity="bottom|end"
         android:layout_marginBottom="25dp"
         android:layout_marginRight="10dp"
         android:background="@android:color/transparent"
         android:src="@drawable/ic_plus_white_48dp"
         android:tint="@android:color/white"/>
-
     <ProgressBar
         android:id="@+id/progress_bar2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|right"
+        android:layout_gravity="bottom|end"
         android:layout_marginBottom="25dp"
         android:layout_marginRight="10dp"
         android:indeterminateTint="@android:color/white"
@@ -78,5 +77,5 @@
         android:textStyle="bold"
         android:textSize="20dp"
         android:textColor="@android:color/holo_red_dark"
-        android:text="No model file found"/>
+        android:text="@string/no_model_file"/>
 </FrameLayout>

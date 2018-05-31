@@ -2,4 +2,7 @@
     <string name="app_name">CustomVision Sample</string>
     <string name="activity_name_classification">Classify</string>
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+    <string name="no_label_file">No label file found</string>
+    <string name="no_model_file">No model file found</string>
+    <string name="no_model_label_file">No model and label files found</string>
 </resources>
