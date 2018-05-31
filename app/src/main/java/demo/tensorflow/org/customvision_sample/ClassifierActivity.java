@@ -92,7 +92,7 @@ public class ClassifierActivity extends CameraActivity implements OnImageAvailab
     protected void processImageRGBbytes(int[] rgbBytes) {
         rgbFrameBitmap.setPixels(rgbBytes, 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
-        new Thread(
+        runInBackground(
                 new Runnable() {
                     @Override
                     public void run() {
@@ -117,7 +117,7 @@ public class ClassifierActivity extends CameraActivity implements OnImageAvailab
                             postInferenceCallback.run();
                         }
                     }
-                }).start();
+                });
 
     }
 

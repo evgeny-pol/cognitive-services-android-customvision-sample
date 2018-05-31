@@ -30,6 +30,8 @@ import junit.framework.Assert;
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,7 +39,11 @@ import java.util.Vector;
 
 public class MSCognitiveServicesClassifier {
 
-    public static String MODEL_FILE = "file:///android_asset/model.pb";
+    private final static String DEFAULT_MODEL_FILE = "file:///android_asset/model.pb";
+    private final static String DEFAULT_LABEL_FILE = "file:///android_asset/labels.txt";
+    private final static String ASSET_PREFIX = "file:///android_asset/";
+    private static String modelFile = DEFAULT_MODEL_FILE;
+    private static String labelFile = DEFAULT_LABEL_FILE;
 
     private TensorFlowInferenceInterface inferenceInterface;
     private Vector<String> labels = new Vector<String>();
@@ -54,8 +60,54 @@ public class MSCognitiveServicesClassifier {
         System.loadLibrary("tensorflow_inference");
     }
 
+    public static void setLabelFile(String label) {
+        labelFile = label;
+    }
+
+    public static void setModelFile(String model) {
+        modelFile = model;
+    }
+
+    public static boolean checkModel(AssetManager manager) {
+        boolean noModel;
+        boolean isAsset = modelFile.startsWith(ASSET_PREFIX);
+        if (isAsset) {
+            String modelName = modelFile.split(ASSET_PREFIX)[1];
+            try {
+                noModel = false;
+                manager.open(modelName);
+            } catch (Exception e) {
+                noModel = true;
+            }
+        } else {
+            String mod = modelFile == null ? DEFAULT_MODEL_FILE : modelFile;
+            File modelFile = new File(mod);
+            noModel = !modelFile.exists();
+        }
+        return noModel;
+    }
+
+    public static boolean checkLabel(AssetManager manager) {
+        boolean noLabel;
+        boolean isAsset = labelFile.startsWith(ASSET_PREFIX);
+        if (isAsset) {
+            String labelName = labelFile.split(ASSET_PREFIX)[1];
+            try {
+                noLabel = false;
+                manager.open(labelName);
+            } catch (Exception e) {
+                noLabel = true;
+            }
+        } else {
+            String mod = labelFile == null ? DEFAULT_LABEL_FILE : labelFile;
+            File labelFile = new File(mod);
+            noLabel = !labelFile.exists();
+        }
+        return noLabel;
+    }
+
     public MSCognitiveServicesClassifier(final Context context) {
-        inferenceInterface = new TensorFlowInferenceInterface(context.getAssets(), MODEL_FILE);
+        inferenceInterface = new TensorFlowInferenceInterface(context.getAssets(), modelFile);
 
         // Look to see if this graph has a data normalization layer, if so we don't need to do
         // mean subtraction on the image.
@@ -77,7 +129,12 @@ public class MSCognitiveServicesClassifier {
         // loading labels
         BufferedReader br = null;
         try {
-            final InputStream inputStream = assetManager.open("labels.txt");
+            InputStream inputStream;
+            if (labelFile.startsWith(ASSET_PREFIX)) {
+                inputStream = assetManager.open(labelFile);
+            } else {
+                inputStream = new FileInputStream(new File(labelFile));
+            }
             br = new BufferedReader(new InputStreamReader(inputStream));
             String line;
             while ((line = br.readLine()) != null) {

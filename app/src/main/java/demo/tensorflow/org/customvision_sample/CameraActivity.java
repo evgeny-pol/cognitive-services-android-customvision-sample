@@ -39,6 +39,8 @@ import android.media.ImageReader.OnImageAvailableListener;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Trace;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
@@ -48,6 +50,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.microsoft.codepush.common.core.CodePushAPI;
@@ -100,9 +103,11 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
     private ProgressBar progressBar2;
     private boolean syncInProgress;
     private String mLabel;
-    private boolean noModel = true;
+    private boolean noModelOrLabel = true;
     private Fragment fragment;
     private boolean mTrainingInProgress;
+    private Handler handler;
+    private HandlerThread handlerThread;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -146,36 +151,46 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
         codePush = CodePushAPI.builder("4VnyrkITHiZ6Qroh19nsQkebgfZLSyNJucKym", getApplication(), "8fc35262-2bfb-46d7-b1c6-c9a32dd9ca7a").setAppEntryPoint("codepush_update").build();
         codePush.addSyncStatusListener(this);
         sync();
-        checkModel();
+        checkAssets();
     }
 
-    private void checkModel() {
+    private void checkAssets() {
         try {
             if (codePush.getPackageFolderPath() != null) {
-                MSCognitiveServicesClassifier.MODEL_FILE = codePush.getPackageFolderPath()
+                String codePushModelPath = codePush.getPackageFolderPath()
                         + File.separator
-                        + "dynamic_mtcnn.pb";
+                        + "model.pb";
+                String codePushLabelPath = codePush.getPackageFolderPath()
+                        + File.separator
+                        + "labels.txt";
+                if (new File(codePushModelPath).exists()) {
+                    MSCognitiveServicesClassifier.setModelFile(codePushModelPath);
+                }
+                if (new File(codePushLabelPath).exists()) {
+                    MSCognitiveServicesClassifier.setLabelFile(codePushLabelPath);
+                }
             }
         } catch (Exception e) {
         }
-        String model = MSCognitiveServicesClassifier.MODEL_FILE;
-        boolean isAsset = model.startsWith("file:///android_asset/");
-        if (isAsset) {
-            String modelName = model.split("file:///android_asset/")[1];
-            try {
-                noModel = false;
-                getAssets().open(modelName);
-            } catch (Exception e) {
-                noModel = true;
-            }
-        } else {
-            File modelFile = new File(model);
-            noModel = !modelFile.exists();
+        boolean noModel = MSCognitiveServicesClassifier.checkModel(getAssets());
+        boolean noLabel = MSCognitiveServicesClassifier.checkLabel(getAssets());
+        noModelOrLabel = noModel || noLabel;
+        TextView warningLabel = findViewById(R.id.no_model_label);
+        warningLabel.setVisibility(noModelOrLabel ? View.VISIBLE : View.GONE);
+        if (noLabel) {
+            warningLabel.setText("No label file found");
         }
+        if (noModel) {
+            warningLabel.setText("No model file found");
+        }
+        if (noModel && noLabel) {
+            warningLabel.setText("No model and label files found");
+        }
+
     }
 
     private void sync() {
-        new Thread(new Runnable() {
+        new  Thread(new Runnable() {
             @Override public void run() {
                 try {
                     CodePushRemotePackage updatePackage = codePush.checkForUpdate();
@@ -205,7 +220,7 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
         syncInProgress = true;
         final CodePushSyncOptions codePushSyncOptions = new CodePushSyncOptions();
         codePushSyncOptions.setInstallMode(CodePushInstallMode.IMMEDIATE);
-        new Thread(new Runnable() {
+        runInBackground(new Runnable() {
             @Override public void run() {
                 try {
                     codePush.sync(codePushSyncOptions);
@@ -213,7 +228,7 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
                     Log.e("CODEPUSH", e.getMessage());
                 }
             }
-        }).start();
+        });
     }
 
     public void syncStatusChanged(final CodePushSyncStatus syncStatus) {
@@ -230,7 +245,7 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
                     }
                     break;
                     case UPDATE_INSTALLED:
-                        checkModel();
+                        checkAssets();
                     default: {
                         syncButton.setVisibility(View.VISIBLE);
                         progressBar.setVisibility(View.GONE);
@@ -247,7 +262,7 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
      */
     @Override
     public void onPreviewFrame(final byte[] bytes, final Camera camera) {
-        if (computing || syncInProgress || noModel) {
+        if (computing || syncInProgress || noModelOrLabel) {
             return;
         }
         computing = true;
@@ -294,7 +309,7 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
                 return;
             }
 
-            if (computing || syncInProgress || noModel) {
+            if (computing || syncInProgress || noModelOrLabel) {
                 image.close();
                 return;
             }
@@ -339,6 +354,9 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
     public synchronized void onResume() {
         LOGGER.d("onResume " + this);
         super.onResume();
+        handlerThread = new HandlerThread("inference");
+        handlerThread.start();
+        handler = new Handler(handlerThread.getLooper());
     }
 
     private void addPerson() {
@@ -376,8 +394,8 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
                     }
                     runOnUiThread(new Runnable() {
                         @Override public void run() {
-                            addButton.setVisibility(View.GONE);
-                            progressBar2.setVisibility(View.VISIBLE);
+                            addButton.setVisibility(View.VISIBLE);
+                            progressBar2.setVisibility(View.GONE);
                         }
                     });
                 }
@@ -404,6 +422,14 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
             finish();
         }
 
+        handlerThread.quitSafely();
+        try {
+            handlerThread.join();
+            handlerThread = null;
+            handler = null;
+        } catch (final InterruptedException e) {
+            LOGGER.e(e, "Exception!");
+        }
         super.onPause();
     }
 
@@ -568,6 +594,12 @@ public abstract class CameraActivity extends Activity implements OnImageAvailabl
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    protected synchronized void runInBackground(final Runnable r) {
+        if (handler != null) {
+            handler.post(r);
+        }
     }
 
     protected abstract void processImageRGBbytes(int[] rgbBytes);
