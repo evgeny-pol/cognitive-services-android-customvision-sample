@@ -1,0 +1,14 @@
+{
+  "name": "codepushnode",
+  "version": "1.0.0",
+  "description": "",
+  "main": "CodePushRelease.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "code-push": "^2.0.5"
+  }
+}
